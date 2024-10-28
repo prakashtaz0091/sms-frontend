@@ -12,27 +12,9 @@ const baseUrl = import.meta.env.VITE_API_BASE_URL
 
 function AdmissionForm() {
 
-  // const {api} = useContext(AuthContext);
+  const {api} = useContext(AuthContext);
 
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-        
-  
-  //       const response = await api.get("/student/");
-  //       // console.log(response.data);
-      
-  //     } catch (error) {
-  //       console.error("Error fetching data:", error);
-  //       // Log additional details from the error response
-  //       if (error.response) {
-  //         // console.error("Response data:", error.response.data);
-  //       }
-  //     }
-  //   };
-  
-  //   fetchData();
-  // }, [api]);
+
 
 
 
@@ -338,7 +320,7 @@ function AdmissionForm() {
     e.preventDefault();
 
     if (validate()) {
-      console.log("Form submitted successfully!", formData);
+      // console.log("Form submitted successfully!", formData);
       localStorage.setItem("formData", JSON.stringify(formData));
 
       // Reset the form data after submission
@@ -353,7 +335,7 @@ function AdmissionForm() {
       }
 
       const token = auth.token;  // Replace with your actual token
-      console.log(token);
+      // console.log(token);
       
 
       axios.post(`${baseUrl}/student/`, FORMDATA, {
