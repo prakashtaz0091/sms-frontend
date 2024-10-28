@@ -1,9 +1,42 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useContext, useEffect } from "react";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FaUser } from "react-icons/fa";
 import StateDistrictSelect from "../SignUp&SignIn/StatesDistricts";
+import axios from "axios";
+import {AuthContext} from "../../../context/AuthContext"
+import satesDistrictsJSON from "../SignUp&SignIn/statesDistricts.json"
+
+
+
+const baseUrl = import.meta.env.VITE_API_BASE_URL
 
 function AdmissionForm() {
+
+  // const {api} = useContext(AuthContext);
+
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+        
+  
+  //       const response = await api.get("/student/");
+  //       // console.log(response.data);
+      
+  //     } catch (error) {
+  //       console.error("Error fetching data:", error);
+  //       // Log additional details from the error response
+  //       if (error.response) {
+  //         // console.error("Response data:", error.response.data);
+  //       }
+  //     }
+  //   };
+  
+  //   fetchData();
+  // }, [api]);
+
+
+
+
   const initialFormValues = {
     studentFirstName: "",
     studentMiddleName: "",
@@ -63,16 +96,42 @@ function AdmissionForm() {
     
     
   };
-const [formData,setFormData]=useState(initialFormValues)
+  const {auth} = useContext(AuthContext);
+
+  const [formData,setFormData]=useState(initialFormValues)
   // State for managing errors
   const [errors, setErrors] = useState({});
 
   // Ref for file input
   const fileInputRef = useRef(null);
 
+
+
+
+  
+  
+  function getStates(jsonData) {
+    return jsonData.states.map((stateObj) => stateObj.state);
+  }
+
+  function getDistrictsByState(jsonData, stateName) {
+    const stateObj = jsonData.states.find(
+      (stateObj) => stateObj.state === stateName
+    );
+    return stateObj ? stateObj.districts : []; // Return districts or empty array if state not found
+  }
+
+  const [states, setStates] = useState(getStates(satesDistrictsJSON));
+  const [districts, setDistricts] = useState([]);
+
+  const [cstates, setCstates] = useState(states);
+  const [cdistricts, setCdistricts] = useState([]);
+
   // Handle change for form fields
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    
   
     setFormData((prevFormData) => {
       // Update the current field value
@@ -80,9 +139,35 @@ const [formData,setFormData]=useState(initialFormValues)
         ...prevFormData,
         [name]: type === "checkbox" ? checked : value,
       };
-  
+      
+      if (name === "pstate") {
+        setDistricts(getDistrictsByState(satesDistrictsJSON, value));
+        updatedFormData = {
+          ...updatedFormData,
+          pstate: value,
+          pdistrict: "",
+        }
+      }
+
+      if (name === "cstate") {
+        setCdistricts(getDistrictsByState(satesDistrictsJSON, value));
+        updatedFormData = {
+          ...updatedFormData,
+          cstate: value,
+          cdistrict: "",
+        }
+      }
+
+
       // Logic for copying permanent address to current address if checkbox is checked
       if (name === "sameAsPermanentAddress" && checked) {
+        console.log("sameaspar state checked");
+
+
+        //reset current districts according to permanent state
+        setCdistricts(getDistrictsByState(satesDistrictsJSON, prevFormData.pstate));
+
+
         updatedFormData = {
           ...updatedFormData,
           cAddress1: prevFormData.pAddress1,
@@ -96,6 +181,8 @@ const [formData,setFormData]=useState(initialFormValues)
   
       // If "sameAsPermanentAddress" is unchecked, clear the current address fields
       if (name === "sameAsPermanentAddress" && !checked) {
+        // console.log("sameaspar state changed");
+
         updatedFormData = {
           ...updatedFormData,
           cAddress1: "",
@@ -258,6 +345,29 @@ const [formData,setFormData]=useState(initialFormValues)
       setFormData(initialFormValues);
 
       setErrors({});
+
+      let FORMDATA = new FormData();
+      for (const key in formData) {
+        FORMDATA.append(key, formData[key]);        
+        
+      }
+
+      const token = auth.token;  // Replace with your actual token
+      console.log(token);
+      
+
+      axios.post(`${baseUrl}/student/`, FORMDATA, {
+        headers: {
+          'accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        }
+      }).then((res) => {
+        
+        alert("Admission Successful");
+      }).catch((err) => { 
+        console.log(err);
+      });
+
     } else {
       console.log("Form has errors. Please correct them and try again.");
     }
@@ -270,6 +380,9 @@ const [formData,setFormData]=useState(initialFormValues)
   const handleReset=()=>{
     setFormData(initialFormValues);
   }
+
+
+
 
   return (
     <div className="bg-pink-100 min-h-screen p-8">
@@ -813,26 +926,24 @@ const [formData,setFormData]=useState(initialFormValues)
             </div>
 
             <div className="mb-4">
-              <label className="font-sans text-base font-bold leading-5 text-left">District</label>
+              <label className="font-sans text-base font-bold leading-5 text-left">Country</label>
               <select
-                
-                name="pdistrict"
-                value={formData.pdistrict}
+                name="pcountry"
+                value={formData.pcountry}
                 onChange={handleChange}
                 className="mt-1 block w-full p-2 bg-white border border-gray-300 rounded-3xl"
               >
                 <option value="" disabled selected>
-                  District
+                  Country
                 </option>
-                <option value="Class 1">Nepal</option>
+                
                 <option value="Class 2">India</option>
-                <option value="Class 3">China</option>
               </select>
-              {errors.pdistrict && (
-                <p className="text-red-500 text-sm">{errors.pdistrict}</p>
+              {errors.pcountry && (
+                <p className="text-red-500 text-sm">{errors.pcountry}</p>
               )}
             </div>
-
+            
             <div className="mb-4 ">
               <label className="font-sans text-base font-bold leading-5 text-left">State</label>
               <select
@@ -844,34 +955,45 @@ const [formData,setFormData]=useState(initialFormValues)
                 <option value="" disabled selected>
                   State
                 </option>
-                <option value="Class 1">Nepal</option>
-                <option value="Class 2">India</option>
-                <option value="Class 3">China</option>
+                {
+                  states.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))
+                }
+
               </select>
               {errors.pstate && (
                 <p className="text-red-500 text-sm">{errors.pstate}</p>
               )}
             </div>
-
             <div className="mb-4">
-              <label className="font-sans text-base font-bold leading-5 text-left">Country</label>
+              <label className="font-sans text-base font-bold leading-5 text-left">District</label>
               <select
-                name="pcountry"
-                value={formData.pcountry}
+                
+                name="pdistrict"
+                value={formData.pdistrict}
                 onChange={handleChange}
                 className="mt-1 block w-full p-2 bg-white border border-gray-300 rounded-3xl"
               >
                 <option value="" disabled selected>
-                  Country
+                  District
                 </option>
-                <option value="Class 1">Nepal</option>
-                <option value="Class 2">India</option>
-                <option value="Class 3">China</option>
+                {
+                  districts.map((district) => (
+                    <option key={district} value={district}>
+                      {district}
+                    </option>
+                  ))
+                }
               </select>
-              {errors.pcountry && (
-                <p className="text-red-500 text-sm">{errors.pcountry}</p>
+              {errors.pdistrict && (
+                <p className="text-red-500 text-sm">{errors.pdistrict}</p>
               )}
             </div>
+
+            
             <div className="mb-4">
               <label className="font-sans text-base font-bold leading-5 text-left">Pin Code</label>
               <input
@@ -935,15 +1057,15 @@ const [formData,setFormData]=useState(initialFormValues)
             </div>
 
             <div className="mb-4">
-              <label className="font-sans text-base font-bold leading-5 text-left">District</label>
+              <label className="font-sans text-base font-bold leading-5 text-left">Country</label>
               <select
-                name="cdistrict"
-                value={formData.cdistrict}
+                name="ccountry"
+                value={formData.ccountry}
                 onChange={handleChange}
                 className="mt-1 block w-full p-2 bg-white border border-gray-300 rounded-3xl"
               >
                 <option value="" disabled selected>
-                  District
+                  Country
                 </option>
                 <option value="Class 1">Nepal</option>
                 <option value="Class 2">India</option>
@@ -962,28 +1084,37 @@ const [formData,setFormData]=useState(initialFormValues)
                 <option value="" disabled selected>
                   State
                 </option>
-                <option value="Class 1">Nepal</option>
-                <option value="Class 2">India</option>
-                <option value="Class 3">China</option>
+                {
+                  cstates.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))
+                }
               </select>
             </div>
-
             <div className="mb-4">
-              <label className="font-sans text-base font-bold leading-5 text-left">Country</label>
+              <label className="font-sans text-base font-bold leading-5 text-left">District</label>
               <select
-                name="ccountry"
-                value={formData.ccountry}
+                name="cdistrict"
+                value={formData.cdistrict}
                 onChange={handleChange}
                 className="mt-1 block w-full p-2 bg-white border border-gray-300 rounded-3xl"
               >
                 <option value="" disabled selected>
-                  Country
+                  District
                 </option>
-                <option value="Class 1">Nepal</option>
-                <option value="Class 2">India</option>
-                <option value="Class 3">China</option>
+                {
+                  cdistricts.map((district) => (
+                    <option key={district} value={district}>
+                      {district}
+                    </option>
+                  ))
+                }
               </select>
             </div>
+
+           
             <div className="mb-4">
               <label className="font-sans text-base font-bold leading-5 text-left">Pin Code</label>
               <input
