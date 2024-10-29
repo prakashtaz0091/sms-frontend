@@ -26,7 +26,7 @@ const phoneRegExp = /^\d{10}$/;
 //     KR: /^\d{5}$/                         // South Korea
 //   };
 //image should be less than or equal to 5MB
-const SUPPORTED_FORMATS = ['image/jpg', 'image/jpeg', 'image/png'];
+const SUPPORTED_FORMATS = ['image/jpg', 'image/jpeg', 'image/png', 'application/pdf', 'application/msword'];
 const FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const formValidationSchema = Yup.object().shape({
@@ -38,20 +38,29 @@ export const formValidationSchema = Yup.object().shape({
   dateOfBirth: Yup.date().required('Date of Birth is required'),
 
   //File validation
-  file: Yup.object().shape({
-    file: Yup.mixed()
-      .required("A photo is required")
-      .test(
-        "fileSize",
-        "File size is too large",
-        (value) => value && value.size <= FILE_SIZE
-      )
-      .test(
-        "fileFormat",
-        "Unsupported Format",
-        (value) => value && SUPPORTED_FORMATS.includes(value.type)
-      ),
-  }),
+  // file: Yup.object().shape({
+  //   file: Yup.mixed()
+  //     .required("A photo is required")
+  //     .test(
+  //       "fileSize",
+  //       "File size is too large",
+  //       (value) => value && value.size <= FILE_SIZE
+  //     )
+  //     .test(
+  //       "fileFormat",
+  //       "Unsupported Format",
+  //       (value) => value && SUPPORTED_FORMATS.includes(value.type)
+  //     ),
+  // }),
+  //biodata validation
+  bioData: Yup.mixed()
+  .required("Biodata is required")
+  .test(
+    "fileSize",
+    "File size is too large",
+    (value) => !value || (value && value.size <= FILE_SIZE)
+  )
+,
   aadharNumber: Yup.string()
     .matches(aadharRegExp, 'Aadhar Number must be exactly 12 digits')
     .required('Aadhar number is required'),
@@ -83,7 +92,7 @@ export const formValidationSchema = Yup.object().shape({
     dateOfJoining: Yup.date().required('Date of joining is required'),
     nationality: Yup.string().required("Nationality is required"),
     bloodGroup:Yup.string().required("Blood gruop is required"),
-    bioData:Yup.string().required("Bio Data is required"),
+    // bioData:Yup.string().required("Bio Data is required"),
     educationalDetails:Yup.string().required("Educational Details is required"),
     mainSubject:Yup.string().required("Choose Main subject"),
     experience:Yup.string().required("Mention experinece"),
