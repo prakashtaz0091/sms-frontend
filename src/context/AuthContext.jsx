@@ -215,7 +215,9 @@ export const AuthProvider = ({ children }) => {
             });
 
             const newAccessToken = response.data.access;
+            const newRefreshToken = response.data.refresh;
             localStorage.setItem("access_token", newAccessToken);
+            localStorage.setItem("refresh_token", newRefreshToken);
 
             setAuth((prev) => ({
               ...prev,
