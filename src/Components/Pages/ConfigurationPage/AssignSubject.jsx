@@ -1,41 +1,65 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { FcSettings } from "react-icons/fc";
 import { IoSearch } from "react-icons/io5";
 import { FiRefreshCcw } from "react-icons/fi";
 import ClassSubjects from "./ClassSubjects";
+import { AuthContext } from "../../../context/AuthContext";
+import { set } from "date-fns";
 
 const Classes = () => {
+ 
   const initialClasses = [
-    {
-      className: "Class Nursery",
-      subjects: [
-        { subject: "English", teacher: "John Smith" },
-        { subject: "Mathematics", teacher: "Emily Johnson" },
-        { subject: "Science", teacher: "Michael Brown" },
-      ],
-    },
-    {
-      className: "Class LKG",
-      subjects: [
-        { subject: "English", teacher: "Sarah Davis" },
-        { subject: "Mathematics", teacher: "David Wilson" },
-        { subject: "Science", teacher: "Laura Garcia" },
-      ],
-    },
-    {
-      className: "Class UKG",
-      subjects: [
-        { subject: "English", teacher: "James Martinez" },
-        { subject: "Mathematics", teacher: "Linda Rodriguez" },
-        { subject: "Science", teacher: "Robert Lee" },
-      ],
-    },
+    
   ];
+
+
+  const {api} = useContext(AuthContext);
+
+
+
+
+
+  const [classes, setClasses] = useState(initialClasses); // To hold the assigned subjects for each class
+
   const [selectedClass, setSelectedClass] = useState("");
   const [subjectList, setSubjectList] = useState([
-    { subject: "", teacher: "" },
+    // { subject: "", teacher: "" },
+    // { subject: "" },
   ]);
-  const [classes, setClasses] = useState(initialClasses); // To hold the assigned subjects for each class
+  const [teachers, setTeachers] = useState([]);
+
+
+  React.useEffect(() => {
+
+
+    // load classes from database
+    api.get('get_classes/').then((response) => {
+      // console.log(response.data);
+      setClasses(response.data);
+    }).catch((error) => {
+      console.log(error);
+    })
+
+
+   
+      //load teachers from database
+      api.get(`get_teachers/`).then((response) => {
+        console.log(response.data);
+        setTeachers(response.data);
+  
+      }).catch((error) => {
+        console.log(error);
+        
+      })
+
+    
+
+
+
+  }, [api]);
+
+
+
 
   const handleAddMore = () => {
     setSubjectList([...subjectList, { subject: "", teacher: "" }]);
@@ -87,6 +111,34 @@ const Classes = () => {
     
   };
 
+
+  const handleClassChange = (e) => {
+
+    setSelectedClass(e.target.value);
+
+    const id =  classes.find((item) => item.className === e.target.value).id
+        // console.log(id);
+
+
+    if (localStorage.getItem(`subjectList${id}`)) {
+      console.log("subjectList already exists in local storage");
+      setSubjectList(JSON.parse(localStorage.getItem(`subjectList${id}`)));
+    }else{
+      api.get(`get_subjects/${id}/`).then((response) => {
+        console.log(response.data);
+        setSubjectList(response.data);
+        localStorage.setItem(`subjectList${id}`, JSON.stringify(response.data));
+  
+      }).catch((error) => {
+        console.log(error);
+        
+      })
+
+    }
+      
+        
+  }
+
   return (
     <div className="p-8 bg-pink-100 min-h-screen">
       <div className="flex gap-4 bg-white rounded-3xl p-2">
@@ -117,25 +169,18 @@ const Classes = () => {
             <select
               name="class"
               value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
+              onChange={handleClassChange }
               className="p-3 px-4 mb-4 rounded-3xl bg-white border border-blue-500 w-96"
             >
               <option value="" disabled>
                 Select Class
               </option>
-              <option value="Class Nursery">Class Nursery</option>
-              <option value="Class LKG">Class LKG</option>
-              <option value="Class UKG">Class UKG</option>
-              <option value="Class 01">Class 01</option>
-              <option value="Class 02">Class 02</option>
-              <option value="Class 03">Class 03</option>
-              <option value="Class 04">Class 04</option>
-              <option value="Class 05">Class 05</option>
-              <option value="Class 06">Class 06</option>
-              <option value="Class 07">Class 07</option>
-              <option value="Class 08">Class 08</option>
-              <option value="Class 09">Class 09</option>
-              <option value="Class 10">Class 10</option>
+              
+              {classes && classes.map((item, index) => (
+                <option key={index} value={item.className}>
+                  {item.className}
+                </option>
+              ))}
             </select>
             {subjectList.map((item, index) => (
               <div className="flex justify-between gap-4 mb-4" key={index}>
@@ -152,16 +197,11 @@ const Classes = () => {
                   <option value="" disabled>
                     Select Subject
                   </option>
-                  <option value="English">English</option>
-                  <option value="Mathematics">Mathematics</option>
-                  <option value="Science">Science</option>
-                  <option value="Social Studies">Social Studies</option>
-                  <option value="Hindi">Hindi</option>
-                  <option value="Physical Education">Physical Education</option>
-                  <option value="Art">Art</option>
-                  <option value="Music">Music</option>
-                  <option value="Computer Science">Computer Science</option>
-                  <option value="Foreign Language">Foreign Language</option>
+                  {subjectList && subjectList.map((item, index) => (
+                    <option key={index} value={item.subject_name}>
+                      {item.subject_name}
+                    </option>
+                  ))}
                 </select>
                 <select
                   name="teacher"
@@ -176,16 +216,11 @@ const Classes = () => {
                   <option value="" disabled>
                     Select Teacher
                   </option>
-                  <option value="John Smith">John Smith</option>
-                  <option value="Emily Johnson">Emily Johnson</option>
-                  <option value="Michael Brown">Michael Brown</option>
-                  <option value="Sarah Davis">Sarah Davis</option>
-                  <option value="David Wilson">David Wilson</option>
-                  <option value="Laura Garcia">Laura Garcia</option>
-                  <option value="James Martinez">James Martinez</option>
-                  <option value="Linda Rodriguez">Linda Rodriguez</option>
-                  <option value="Robert Lee">Robert Lee</option>
-                  <option value="Patricia Walker">Patricia Walker</option>
+                  {teachers && teachers.map((item, index) => (
+                    <option key={index} value={item.full_name}>
+                      {item.full_name}
+                    </option>
+                  ))}
                 </select>
               </div>
             ))}
@@ -238,7 +273,7 @@ const Classes = () => {
               <FiRefreshCcw className="text-gray-600 transition-transform duration-200 hover:rotate-180" />
             </div>
           </div>
-          <ClassSubjects classes={classes} />
+          {/* <ClassSubjects classes={classes} /> */}
         </div>
       </div>
     </div>

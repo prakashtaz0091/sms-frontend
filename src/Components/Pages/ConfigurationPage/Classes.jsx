@@ -74,7 +74,9 @@ const Classes = () => {
   const handleCreateClass = () => {
     if (className && monthlyFees && classTeacherID) {
       const classTeacherName = getClassTeacherNameFromID(classTeacherID);
-      const newClass = { class: className, classTeacher: classTeacherName, monthlyFees };
+      const newClass = { className, class_teacher_fullname: classTeacherName,class_teacher: classTeacherID, monthlyFees };
+      // console.log(newClass);
+      
       setRows((prevRows) => [...prevRows, newClass]);
       setFilteredRows((prevRows) => [...prevRows, newClass]); // Update filtered rows
       
