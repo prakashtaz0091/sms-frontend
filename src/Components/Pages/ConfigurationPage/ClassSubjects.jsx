@@ -1,9 +1,13 @@
-import React from 'react';
+import React, {useContext, useState} from 'react';
 import { FaEdit } from 'react-icons/fa'; 
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../../context/AuthContext';
+import { set } from 'date-fns';
 
-const ClassSubjects = ({ classes }) => {
+const ClassSubjects = ({classes}) => {
     const navigate = useNavigate();
+    const {api}  = useContext(AuthContext);
+
 
     const editClick = () => {
         navigate('/config/assignSubject/edit');

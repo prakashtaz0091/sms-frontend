@@ -15,19 +15,39 @@ const Classes = () => {
 
   const {api} = useContext(AuthContext);
 
-
+  const [assignedclasses, setAssignedClasses] = useState([]);
 
 
 
   const [classes, setClasses] = useState(initialClasses); // To hold the assigned subjects for each class
-
-  const [selectedClass, setSelectedClass] = useState("");
-  const [subjectList, setSubjectList] = useState([
-    // { subject: "", teacher: "" },
-    // { subject: "" },
-  ]);
+  const [subjectList, setSubjectList] = useState([]);
   const [teachers, setTeachers] = useState([]);
 
+  const [selectedClass, setSelectedClass] = useState({
+    className: "",
+    id : ""
+  });
+  const [selectedSubject, setSelectedSubject] = useState({
+    subjectName: "",
+    id : ""
+  });
+  const [selectedTeacher, setSelectedTeacher] = useState({
+    teacherName: "",
+    id : ""
+  });
+  // const [assignedSubjectTeacherList, setAssignedSubjectTeacherList] = useState([]);
+
+
+  const getAssignedSubjectClasses = async () => {
+    try{
+        const response = await api.get('/get_assigned_subject_classes/');
+        // console.log(response.data);
+        setAssignedClasses(response.data);
+        
+    }catch(error){
+        console.log(error);
+    }
+  }
 
   React.useEffect(() => {
 
@@ -42,17 +62,29 @@ const Classes = () => {
 
 
    
-      //load teachers from database
-      api.get(`get_teachers/`).then((response) => {
-        console.log(response.data);
-        setTeachers(response.data);
-  
-      }).catch((error) => {
-        console.log(error);
-        
-      })
+    //load teachers from database
+    api.get(`get_teachers/`).then((response) => {
+      console.log(response.data);
+      setTeachers(response.data);
 
+    }).catch((error) => {
+      console.log(error);
+      
+    })
+
+
+    //load subjects from database
+    api.get('/subject/').then((response) => {
+      // console.log(response.data);
+      setSubjectList(response.data);
+    }).catch((error) => {
+      console.log(error);
+    })
     
+
+
+
+    getAssignedSubjectClasses();
 
 
 
@@ -66,29 +98,27 @@ const Classes = () => {
   };
 
   const handleAssign = () => {
-    if (selectedClass && subjectList.length > 0) {
-      const updatedClasses = classes.map((cls) =>
-        cls.className === selectedClass
-          ? { ...cls, subjects: [...cls.subjects, ...subjectList] }
-          : cls
-      );
+    if (selectedClass && selectedSubject && selectedTeacher) {
+     
+      console.log(selectedClass, selectedSubject, selectedTeacher);
+      const formData = new FormData();
+      formData.append("class_name", selectedClass.id);      
+      formData.append("subject", selectedSubject.id);      
+      formData.append("subject_teacher", selectedTeacher.id);      
 
-      const classExists = classes.some(
-        (cls) => cls.className === selectedClass
-      );
+      api.post('/class_subject/', formData).then((response) => {
+        // console.log(response.data);
+        console.log("Subject assigned successfully");
+        setSelectedClass({ className: "", id : "" });
+        setSelectedSubject({ subjectName: "", id : "" });
+        setSelectedTeacher({ teacherName: "", id : "" });
+        getAssignedSubjectClasses();
 
-      if (!classExists) {
-        setClasses([
-          ...classes,
-          { className: selectedClass, subjects: subjectList },
-        ]);
-      } else {
-        setClasses(updatedClasses);
-      }
-
-      // Reset state after assigning
-      setSelectedClass("");
-      setSubjectList([{ subject: "", teacher: "" }]);
+      }).catch((error) => {
+        console.log(error);
+        // alert(error.response.data.non_field_errors[0]);
+      })
+     
     }
   };
 
@@ -112,32 +142,7 @@ const Classes = () => {
   };
 
 
-  const handleClassChange = (e) => {
 
-    setSelectedClass(e.target.value);
-
-    const id =  classes.find((item) => item.className === e.target.value).id
-        // console.log(id);
-
-
-    if (localStorage.getItem(`subjectList${id}`)) {
-      console.log("subjectList already exists in local storage");
-      setSubjectList(JSON.parse(localStorage.getItem(`subjectList${id}`)));
-    }else{
-      api.get(`get_subjects/${id}/`).then((response) => {
-        console.log(response.data);
-        setSubjectList(response.data);
-        localStorage.setItem(`subjectList${id}`, JSON.stringify(response.data));
-  
-      }).catch((error) => {
-        console.log(error);
-        
-      })
-
-    }
-      
-        
-  }
 
   return (
     <div className="p-8 bg-pink-100 min-h-screen">
@@ -168,8 +173,15 @@ const Classes = () => {
           <div className="px-6">
             <select
               name="class"
-              value={selectedClass}
-              onChange={handleClassChange }
+              value={selectedClass.className}
+              onChange={(e) => {
+                setSelectedClass(
+                  {
+                    className: e.target.value,
+                    id : classes.find((item) => item.className === e.target.value).id
+                  }
+                )
+              }}
               className="p-3 px-4 mb-4 rounded-3xl bg-white border border-blue-500 w-96"
             >
               <option value="" disabled>
@@ -182,15 +194,17 @@ const Classes = () => {
                 </option>
               ))}
             </select>
-            {subjectList.map((item, index) => (
-              <div className="flex justify-between gap-4 mb-4" key={index}>
+              <div className="flex justify-between gap-4 mb-4" >
                 <select
                   name="subject"
-                  value={item.subject}
+                  value={selectedSubject.subjectName}
                   onChange={(e) => {
-                    const newSubjectList = [...subjectList];
-                    newSubjectList[index].subject = e.target.value;
-                    setSubjectList(newSubjectList);
+                    setSelectedSubject({
+                      subjectName: e.target.value,
+                      id : subjectList.find((item) => item.subjectName === e.target.value).id
+                    });
+                  
+                    
                   }}
                   className="p-3 px-4 rounded-3xl bg-white border border-blue-500 w-full"
                 >
@@ -198,18 +212,22 @@ const Classes = () => {
                     Select Subject
                   </option>
                   {subjectList && subjectList.map((item, index) => (
-                    <option key={index} value={item.subject_name}>
-                      {item.subject_name}
+                    <option key={index} value={item.subjectName}>
+                      {item.subjectName}
                     </option>
                   ))}
                 </select>
                 <select
                   name="teacher"
-                  value={item.teacher}
+                  value={selectedTeacher.teacherName}
                   onChange={(e) => {
-                    const newSubjectList = [...subjectList];
-                    newSubjectList[index].teacher = e.target.value;
-                    setSubjectList(newSubjectList);
+                    setSelectedTeacher(
+                      {
+                        teacherName: e.target.value,
+                        id : teachers.find((item) => item.full_name === e.target.value).id
+                      }
+                    );
+                  
                   }}
                   className="p-3 px-4 rounded-3xl bg-white border border-blue-500 w-full"
                 >
@@ -223,9 +241,9 @@ const Classes = () => {
                   ))}
                 </select>
               </div>
-            ))}
+            {/* ))} */}
           </div>
-          <div className="flex justify-around gap-4">
+          {/* <div className="flex justify-around gap-4">
             <button
               className="mt-10 bg-red-500 rounded-3xl text-white p-1 px-4 font-bold"
               onClick={() => handleRemove(subjectList.length - 1)} // Remove the last subject entry
@@ -238,7 +256,7 @@ const Classes = () => {
             >
               Add More
             </button>
-          </div>
+          </div> */}
 
           <button
             className="mt-16 bg-pink-500 rounded-3xl text-white p-2 px-8 font-bold mb-16"
@@ -273,7 +291,7 @@ const Classes = () => {
               <FiRefreshCcw className="text-gray-600 transition-transform duration-200 hover:rotate-180" />
             </div>
           </div>
-          {/* <ClassSubjects classes={classes} /> */}
+          <ClassSubjects classes={assignedclasses} />
         </div>
       </div>
     </div>
